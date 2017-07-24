@@ -12,8 +12,8 @@ Here is how you can make a simple plot:
 var plt = srweb.plot; // just to make it short
 
 // generating some data
-t = d3.range(0.0, 2.0, 0.01);
-s = t.map( v => {
+var t = d3.range(0.0, 2.0, 0.01);
+var s = t.map( v => {
 	1 + Math.sin(2*Math.pi*v);
 });
 
