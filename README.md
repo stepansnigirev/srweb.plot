@@ -14,12 +14,12 @@ var plt = srweb.plot; // just to make it short
 // generating some data
 var t = d3.range(0.0, 2.0, 0.01);
 var s = t.map( v => {
-	1 + Math.sin(2*Math.pi*v);
+	return 1 + Math.sin(2*Math.PI*v);
 });
 
 plt.plot(t, s);
 plt.xlabel('time (s)');
-plt.ylabel('voltage (mV)');
+plt.ylabel('voltage (V)');
 plt.title('About as simple as it gets, folks');
 plt.grid(true);
 plt.show("#chart"); // defines container for figure rendering
@@ -33,9 +33,14 @@ But here you can do much more. You can update plot parameters and data on the fl
 var p = plt.plot(t, s);
 var fig = plt.show("#chart"); //shows the plot
 
+// mV to dbm conversion
+function dbm(v){
+	return 10*Math.log10((v**2)/(50*1e-3));
+}
+
 fig.on("click", () => {
-	// change x axis from time to 1/time
-	p.set_xlabel("Inverse time (1/s)");
-	p.x = p.x.map( v => { return 1/v; });
+	// change y axis from voltage to power
+	p.set_ylabel("power (dbm)");
+	p.y = p.y.map(dbm);
 });
 ```
