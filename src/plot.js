@@ -259,9 +259,22 @@ if(!srweb){
 // }
 
 srweb.plot = new function(){
+    function isObject(obj) {
+        return obj === Object(obj);
+    }
     class Figure{
-        constructor(key){
+        constructor(key, options={}){
             this._key = key;
+            this._options = {
+                figsize: undefined,
+                facecolor: undefined,
+                edgecolor: undefined,
+                frameon: true
+            };
+            this.updateOptions(options);
+        }
+        updateOptions(options={}){
+            Object.assign(this._options, options);
         }
         get key(){
             return this._key;
@@ -278,7 +291,12 @@ srweb.plot = new function(){
     this.getCurrentFigure = this.gcf;
 
     // creates new figure or selects existing one
-    this.figure = function(key){
+    this.figure = function(key, options={}){
+        // if passing only options
+        if((arguments.length == 1) && isObject(arguments[0])){
+            options = arguments[0];
+            key = undefined;
+        }
         if( key === undefined ){
             let maxkey = d3.max(
                 Object.keys(this.figures).map( k => { return +k; })
@@ -288,11 +306,18 @@ srweb.plot = new function(){
 
         if( key in this.figures ){
             this.currentFigure = this.figures[key];
+            this.currentFigure.updateOptions(options);
         }else{
-            let fig = new Figure(key);
+            let fig = new Figure(key, options);
             this.figures[key] = fig;
             this.currentFigure = fig;
         }
         return this.currentFigure;
     }
 }
+
+var plt = srweb.plot;
+plt.figure();
+plt.figure("a", {edgecolor: "#777"});
+plt.figure({edgecolor: "#777"});
+console.log(plt.figures);
