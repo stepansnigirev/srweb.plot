@@ -318,17 +318,25 @@ srweb.plot = new function(){
         return this.currentFigure;
     }
     this.close = function(key=undefined){
-        if(key === undefined){
-            if(this.currentFigure != undefined){
-                this.close(this.currentFigure.key);
-            }
+        if(key == 'all'){
+            Object.keys(this.figures).forEach( k => {
+                this.figures[k].close();
+                delete this.figures[k];
+            });
+            this.currentFigure = undefined;
         }else{
-            if(key in this.figures){
-                this.figures[key].close();
-                if(this.currentFigure == this.figures[key]){
-                    this.currentFigure = undefined;
+            if(key === undefined){
+                if(this.currentFigure != undefined){
+                    this.close(this.currentFigure.key);
                 }
-                delete this.figures[key];
+            }else{
+                if(key in this.figures){
+                    this.figures[key].close();
+                    if(this.currentFigure == this.figures[key]){
+                        this.currentFigure = undefined;
+                    }
+                    delete this.figures[key];
+                }
             }
         }
     }
