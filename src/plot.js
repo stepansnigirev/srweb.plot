@@ -279,6 +279,9 @@ srweb.plot = new function(){
         get key(){
             return this._key;
         }
+        close(){
+            console.log("cleaning up everything");
+        }
     }
 
     // figure management
@@ -313,6 +316,21 @@ srweb.plot = new function(){
             this.currentFigure = fig;
         }
         return this.currentFigure;
+    }
+    this.close = function(key=undefined){
+        if(key === undefined){
+            if(this.currentFigure != undefined){
+                this.close(this.currentFigure.key);
+            }
+        }else{
+            if(key in this.figures){
+                this.figures[key].close();
+                if(this.currentFigure == this.figures[key]){
+                    this.currentFigure = undefined;
+                }
+                delete this.figures[key];
+            }
+        }
     }
 }
 
