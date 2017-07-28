@@ -264,7 +264,9 @@ srweb.plot = new function(){
     }
     class Figure{
         constructor(key, options={}){
+            this._dom = {};
             this._key = key;
+            this._responsive = true;
             this._options = {
                 figsize: undefined,
                 facecolor: undefined,
@@ -272,9 +274,29 @@ srweb.plot = new function(){
                 frameon: true
             };
             this.updateOptions(options);
+            window.addEventListener("resize", ()=>{
+                if(
+                    ("svg" in this._dom) &&
+                    this.responsive
+                    ){
+                    this.show();
+                }
+            });
         }
         updateOptions(options={}){
             Object.assign(this._options, options);
+        }
+        get responsive(){
+            if(this.figsize === undefined){
+                return true;
+            }
+            let r = false;
+            this.figsize.forEach( v => {
+                if(v.toString().indexOf("%") >= 0){
+                    r = true;
+                }
+            });
+            return r;
         }
         get key(){
             return this._key;
@@ -282,11 +304,49 @@ srweb.plot = new function(){
         close(){
             console.log("cleaning up everything");
         }
+        get figsize(){
+            return this._options.figsize;
+        }
+        set figsize(size){
+            this._options.figsize = size;
+            if("svg" in this._dom){
+                this.show();
+            }
+        }
+        show(container){
+            if(container === undefined && !("container" in this._dom)){
+                throw "Argument is missing: container is not defined, don't have a place to show up";
+            }
+            if(container != undefined){
+                this._dom.container = d3.select(container);
+            }
+            let dimensions = this.figsize;
+            if(dimensions === undefined){
+                dimensions = ["100%", "100%"];
+            }
+            dimensions = dimensions.map( (v, i) => {
+                if(v.toString().indexOf("%") >= 0){
+                    let bbox = this._dom.container.node().getBoundingClientRect();
+                    let d = [bbox.width, bbox.height];
+                    let vv = +v.replace("%","")/100;
+                    return d[i]*vv;
+                }else{
+                    return v;
+                }
+            });
+            if(!("svg" in this._dom)){
+                this._dom.svg = this._dom.container.append("svg");
+            }
+            this._dom.svg
+               .attr("width", dimensions[0])
+               .attr("height", dimensions[1])
+            return this;
+        }
     }
 
     // figure management
     this.figures = {};
-    this.currentFigure = undefined;
+    this.currentFigure;
 
     this.gcf = function(){
         return this.currentFigure;
@@ -317,7 +377,7 @@ srweb.plot = new function(){
         }
         return this.currentFigure;
     }
-    this.close = function(key=undefined){
+    this.close = function(key){
         if(key == 'all'){
             Object.keys(this.figures).forEach( k => {
                 this.figures[k].close();
@@ -340,10 +400,11 @@ srweb.plot = new function(){
             }
         }
     }
+
+    // aliases for figure functions
+    this.show = function(container){
+        return this.gcf().show(container);
+    }
 }
 
-var plt = srweb.plot;
-plt.figure();
-plt.figure("a", {edgecolor: "#777"});
-plt.figure({edgecolor: "#777"});
-console.log(plt.figures);
+

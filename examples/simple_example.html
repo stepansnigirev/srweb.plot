@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Simple example</title>
+	<link rel="stylesheet" type="text/css" href="../src/plot.css">
+	<link rel="stylesheet" type="text/css" href="./files/examples-style.css">
+</head>
+<body>
+
+<div id="plot"></div>
+
+<script src="./files/d3.v4.min.js"></script>
+<script src="../src/plot.js"></script>
+<script type="text/javascript">
+
+var plt = srweb.plot;
+
+var fig = plt.figure();
+plt.show("#plot");
+
+// console.log(plt.gcf());
+// var [fig, ax] = plt.figure("#plot");
+
+// // generating some data
+// var t = d3.range(0.0, 2.0, 0.01);
+// var s = t.map( v => {
+// 	return 1 + Math.sin(2*Math.PI*v);
+// });
+
+// ax.plot(t, s, {color: "#faa"});
+// fig.show();
+
+</script>
+
+</body>
+</html>
