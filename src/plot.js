@@ -257,10 +257,154 @@ if(!srweb){
 //         return [fig].concat(fig.axes);
 //     }
 // }
+// TODO: if container is changed
 
 srweb.plot = new function(){
     function isObject(obj) {
         return obj === Object(obj);
+    }
+    function getData(){
+        // possible: (y) or (y,options) or (x,y) or (x,y,options)
+        // TODO: (data) or (data, options)
+        let d = arguments[0];
+        let x = [];
+        let y = [];
+        if(arguments.length > 0 && Array.isArray(arguments[1])){
+            x = arguments[0];
+            y = arguments[1];
+        }else{
+            y = arguments[0];
+            x = d3.range(y.length);
+        }
+        let options={};
+        if(isObject(arguments[arguments.length-1])){
+            Object.assign(options, arguments[arguments.length-1]);
+        }
+        return [x, y, options];
+    }
+    var defaults = {
+        colormap: [
+            "#1f77b4",
+            "#ff7f0e",
+            "#2ca02c",
+            "#d62728",
+            "#9467bd",
+            "#8c564b",
+            "#e377c2",
+            "#7f7f7f",
+            "#bcbd22",
+            "#17becf",
+        ],
+    }
+    class Plot{
+        constructor(options={}){
+            this.x = [];
+            this.y = [];
+            this._dom = {};
+            this._options = {};
+            this.updateOptions(options);
+        }
+        updateOptions(options){
+            Object.assign(this._options, options);
+        }
+        plot(){
+            let options = {};
+            [this.x, this.y, options] = getData.apply(this, arguments);
+            this.updateOptions(options);
+            return this;
+        }
+        get _data(){
+            return this.x.map( (v, i) => {
+                return {x: this.x[i], y:this.y[i] };
+            });
+        }
+        get mfc(){
+            let c = this._options.color;
+            if("mfc" in this._options){
+                c = this._options.mfc;
+            }
+            return c;
+        }
+        get mec(){
+            let c = this._options.color;
+            if("mec" in this._options){
+                c = this._options.mec;
+            }
+            return c;
+        }
+        draw_markers(xscale, yscale){
+            this._dom.ax.append("g")
+              .selectAll("circle")
+              .data(this._data)
+              .enter().append("circle")
+              .attr("r", 3.5)
+              .attr("cx", d => {return xscale(d.x)})
+              .attr("cy", d => {return yscale(d.y)})
+              .attr("fill", this.mfc)
+              .attr("stroke", this.mec);
+        }
+        show(ax, xscale, yscale){
+            if(!("ax" in this._dom)){
+                this._dom.ax = ax;
+            }
+            this.draw_markers(xscale, yscale);
+            return this;
+        }
+        get xmin(){ return d3.min(this.x); }
+        get xmax(){ return d3.max(this.x); }
+        get ymin(){ return d3.min(this.y); }
+        get ymax(){ return d3.max(this.y); }
+    }
+    class Axes{
+        constructor(options={}){
+            this._dom = {};
+            this.plots = [];
+            this._counter = 0;
+        }
+        plot(){
+            let p = new Plot({color: defaults.colormap[this._counter]});
+            this.plots.push(p);
+            p.plot.apply(p, arguments);
+            this._counter = (this._counter + 1) % defaults.colormap.length;
+            return this;
+        }
+        get xmin(){
+            return d3.min(this.plots.map( p => {return p.xmin}));
+        }
+        get xmax(){
+            return d3.max(this.plots.map( p => {return p.xmax}));
+        }
+        get ymin(){
+            return d3.min(this.plots.map( p => {return p.ymin}));
+        }
+        get ymax(){
+            return d3.max(this.plots.map( p => {return p.ymax}));
+        }
+        get xscale(){
+            var x = d3.scaleLinear()
+                .domain([this.xmin, this.xmax])
+                .range([0, this._dimensions[0]]);
+            return x;
+        }
+        get yscale(){
+            var y = d3.scaleLinear()
+                .domain([this.ymin, this.ymax])
+                .range([0, this._dimensions[1]]);
+            return y;
+        }
+        show(svg, dimensions){
+            this._dimensions = dimensions;
+            if(!("svg" in this._dom)){
+                this._dom.svg = svg;
+            }
+            if(!("ax" in this._dom)){
+                this._dom.ax = this._dom.svg.append("g");
+            }
+            this.plots.forEach( p => {
+                p.show(this._dom.ax, this.xscale, this.yscale);
+            });
+            return this;
+        }
     }
     class Figure{
         constructor(key, options={}){
@@ -274,17 +418,29 @@ srweb.plot = new function(){
                 frameon: true
             };
             this.updateOptions(options);
-            window.addEventListener("resize", ()=>{
-                if(
-                    ("svg" in this._dom) &&
-                    this.responsive
-                    ){
-                    this.show();
-                }
-            });
+            this._resize = e => this.resize(e);
+            window.addEventListener("resize", this._resize);
+
+            this.axes = [new Axes()];
+            this.currentAxes = this.axes[0];
+            this.getCurrentAxes = this.gca;
+        }
+        resize(){
+            if(
+                ("svg" in this._dom) &&
+                this.responsive
+                ){
+                this.show();
+            }
         }
         updateOptions(options={}){
             Object.assign(this._options, options);
+            this.redraw();
+        }
+        redraw(){
+            if("svg" in this._dom){
+                this.show();
+            }
         }
         get responsive(){
             if(this.figsize === undefined){
@@ -302,16 +458,35 @@ srweb.plot = new function(){
             return this._key;
         }
         close(){
-            console.log("cleaning up everything");
+            window.removeEventListener("resize", this._resize);
+            if("svg" in this._dom){
+                this._dom.svg.remove();
+            }
+            delete this;
         }
         get figsize(){
             return this._options.figsize;
         }
         set figsize(size){
             this._options.figsize = size;
-            if("svg" in this._dom){
-                this.show();
+            this.redraw();
+        }
+        get realDimensions(){ // in px
+            let dimensions = this.figsize;
+            if(dimensions === undefined){
+                dimensions = ["100%", "100%"];
             }
+            let bbox = this._dom.container.node().getBoundingClientRect();
+            let d = [bbox.width, bbox.height];
+            dimensions = dimensions.map( (v, i) => {
+                if(v.toString().indexOf("%") >= 0){
+                    let vv = +v.replace("%","")/100;
+                    return d[i]*vv;
+                }else{
+                    return v;
+                }
+            });
+            return dimensions;
         }
         show(container){
             if(container === undefined && !("container" in this._dom)){
@@ -320,26 +495,24 @@ srweb.plot = new function(){
             if(container != undefined){
                 this._dom.container = d3.select(container);
             }
-            let dimensions = this.figsize;
-            if(dimensions === undefined){
-                dimensions = ["100%", "100%"];
-            }
-            dimensions = dimensions.map( (v, i) => {
-                if(v.toString().indexOf("%") >= 0){
-                    let bbox = this._dom.container.node().getBoundingClientRect();
-                    let d = [bbox.width, bbox.height];
-                    let vv = +v.replace("%","")/100;
-                    return d[i]*vv;
-                }else{
-                    return v;
-                }
-            });
+            let dimensions = this.realDimensions
             if(!("svg" in this._dom)){
                 this._dom.svg = this._dom.container.append("svg");
             }
             this._dom.svg
-               .attr("width", dimensions[0])
-               .attr("height", dimensions[1])
+                .attr("width", dimensions[0])
+                .attr("height", dimensions[1]);
+            this.axes.forEach( ax => {
+                ax.show(this._dom.svg, dimensions);
+            });
+            return this;
+        }
+        gca(){
+            return this.currentAxes;
+        }
+        plot(){
+            let ax = this.gca();
+            ax.plot.apply(ax, arguments);
             return this;
         }
     }
@@ -404,6 +577,18 @@ srweb.plot = new function(){
     // aliases for figure functions
     this.show = function(container){
         return this.gcf().show(container);
+    }
+    this.gca = function(){
+        return this.gcf().gca();
+    }
+    this.getCurrentAxes = this.gca;
+
+    this.plot = function(){
+        if(!this.gcf()){
+            this.figure();
+        }
+        let fig = this.gcf();
+        return fig.plot.apply(fig, arguments);
     }
 }
 

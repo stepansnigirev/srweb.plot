@@ -15,20 +15,18 @@
 
 var plt = srweb.plot;
 
-var fig = plt.figure();
+// generating some data
+var t = d3.range(0.0, 2.0, 0.01);
+var s1 = t.map( v => {
+	return 1 + Math.sin(2*Math.PI*v);
+});
+var s2 = t.map( v => {
+	return 1 - Math.sin(2*Math.PI*v);
+});
+
+plt.plot(t, s1, {"mfc": "#fff"});
+plt.plot(t, s2);
 plt.show("#plot");
-
-// console.log(plt.gcf());
-// var [fig, ax] = plt.figure("#plot");
-
-// // generating some data
-// var t = d3.range(0.0, 2.0, 0.01);
-// var s = t.map( v => {
-// 	return 1 + Math.sin(2*Math.PI*v);
-// });
-
-// ax.plot(t, s, {color: "#faa"});
-// fig.show();
 
 </script>
 
