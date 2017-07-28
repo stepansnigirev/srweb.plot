@@ -333,15 +333,29 @@ srweb.plot = new function(){
             return c;
         }
         draw_markers(xscale, yscale){
-            this._dom.ax.append("g")
+            if(!("markers" in this._dom)){
+                this._dom.markers = this._dom.ax.append("g")
+                                    .attr("class", "markers");
+            }
+            let markers = this._dom.markers
               .selectAll("circle")
-              .data(this._data)
-              .enter().append("circle")
-              .attr("r", 3.5)
-              .attr("cx", d => {return xscale(d.x)})
-              .attr("cy", d => {return yscale(d.y)})
-              .attr("fill", this.mfc)
-              .attr("stroke", this.mec);
+              .data(this._data);
+
+            markers
+                .enter().append("circle")
+                .attr("cx", d => {return xscale(d.x)})
+                .attr("cy", d => {return yscale(d.y)})
+                .attr("r", 3.5)
+                .attr("fill", this.mfc)
+                .attr("stroke", this.mec);
+            markers
+                .attr("cx", d => {return xscale(d.x)})
+                .attr("cy", d => {return yscale(d.y)})
+                .attr("r", 3.5)
+                .attr("fill", this.mfc)
+                .attr("stroke", this.mec);
+            markers
+                .exit().remove();
         }
         show(ax, xscale, yscale){
             if(!("ax" in this._dom)){
@@ -368,18 +382,10 @@ srweb.plot = new function(){
             this._counter = (this._counter + 1) % defaults.colormap.length;
             return this;
         }
-        get xmin(){
-            return d3.min(this.plots.map( p => {return p.xmin}));
-        }
-        get xmax(){
-            return d3.max(this.plots.map( p => {return p.xmax}));
-        }
-        get ymin(){
-            return d3.min(this.plots.map( p => {return p.ymin}));
-        }
-        get ymax(){
-            return d3.max(this.plots.map( p => {return p.ymax}));
-        }
+        get xmin(){ return d3.min(this.plots.map( p => {return p.xmin})); }
+        get xmax(){ return d3.max(this.plots.map( p => {return p.xmax})); }
+        get ymin(){ return d3.min(this.plots.map( p => {return p.ymin})); }
+        get ymax(){ return d3.max(this.plots.map( p => {return p.ymax})); }
         get xscale(){
             var x = d3.scaleLinear()
                 .domain([this.xmin, this.xmax])
@@ -497,7 +503,8 @@ srweb.plot = new function(){
             }
             let dimensions = this.realDimensions
             if(!("svg" in this._dom)){
-                this._dom.svg = this._dom.container.append("svg");
+                this._dom.svg = this._dom.container.append("svg")
+                    .attr("class", "srweb-plot-figure");
             }
             this._dom.svg
                 .attr("width", dimensions[0])

@@ -1,3 +1,6 @@
 .srweb-plot-figure{
 	cursor: crosshair;
 }
+.srweb-plot-figure .markers{
+	stroke-width: 1;
+}
