@@ -303,9 +303,12 @@ srweb.plot = new function(){
             this._dom = {};
             this._options = {};
             this.updateOptions(options);
+            this._xscale = undefined;
+            this._yscale = undefined;
         }
         updateOptions(options){
             Object.assign(this._options, options);
+            this.redraw();
         }
         plot(){
             let options = {};
@@ -332,6 +335,9 @@ srweb.plot = new function(){
             }
             return c;
         }
+        get color(){
+            return this._options.color;
+        }
         draw_markers(xscale, yscale){
             if(!("markers" in this._dom)){
                 this._dom.markers = this._dom.ax.append("g")
@@ -357,10 +363,44 @@ srweb.plot = new function(){
             markers
                 .exit().remove();
         }
+        draw_line(xscale, yscale){
+            let line = d3.line()
+                .x(function(d) { return xscale(d.x); })
+                .y(function(d) { return yscale(d.y); });
+            if(!("line" in this._dom)){
+                this._dom.line = this._dom.ax.append("path")
+                                    .attr("class", "line");
+            }
+            this._dom.line
+                  .datum(this._data)
+                  .attr("fill", "none")
+                  .attr("stroke", this.color)
+                  .attr("stroke-linejoin", "round")
+                  .attr("stroke-linecap", "round")
+                  .attr("stroke-width", 1)
+                  .attr("d", line);
+        }
+        redraw(){
+            if("ax" in this._dom){
+                this.show();
+            }
+        }
         show(ax, xscale, yscale){
             if(!("ax" in this._dom)){
                 this._dom.ax = ax;
             }
+            if(xscale){
+                this._xscale = xscale;
+            }else{
+                xscale = this._xscale;
+            }
+            if(yscale){
+                this._yscale = yscale;
+            }else{
+                yscale = this._yscale;
+            }
+
+            this.draw_line(xscale, yscale);
             this.draw_markers(xscale, yscale);
             return this;
         }
