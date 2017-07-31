@@ -424,18 +424,20 @@ srweb.plot = new function(){
         }
         get xmin(){ return d3.min(this.plots.map( p => {return p.xmin})); }
         get xmax(){ return d3.max(this.plots.map( p => {return p.xmax})); }
+        get xrange(){ return this.xmax-this.xmin; }
         get ymin(){ return d3.min(this.plots.map( p => {return p.ymin})); }
         get ymax(){ return d3.max(this.plots.map( p => {return p.ymax})); }
+        get yrange(){ return this.ymax-this.ymin; }
         get xscale(){
             var x = d3.scaleLinear()
                 .domain([this.xmin, this.xmax])
-                .range([this._margin.left, this._dimensions[0]-this._margin.right]);
+                .range([this._margin.left + 7, this._dimensions[0]-this._margin.right - 7]);
             return x;
         }
         get yscale(){
             var y = d3.scaleLinear()
                 .domain([this.ymin, this.ymax])
-                .range([this._margin.top, this._dimensions[1]-this._margin.bottom]);
+                .range([this._margin.top + 7, this._dimensions[1]-this._margin.bottom - 7]);
             return y;
         }
         set xlabel(label){
@@ -475,6 +477,38 @@ srweb.plot = new function(){
             this._margin = Object.assign({}, margin);
             this._margin.left += ysize.width;
             this._margin.bottom += xsize.height;
+
+            if(!("xaxis" in this._dom)){
+                this._dom.xaxis = this._dom.ax.append("g");
+            }
+
+            this._dom.xaxis
+                .call(d3.axisBottom(this.xscale));
+
+            var axsize = this._dom.xaxis.node().getBoundingClientRect();
+
+            this._dom.xaxis
+                .attr("transform", "translate(0," + (height-this._margin.bottom-axsize.height) + ")")
+            this._margin.bottom += axsize.height;
+
+            if(!("yaxis" in this._dom)){
+                this._dom.yaxis = this._dom.ax.append("g");
+            }
+
+            this._dom.yaxis
+                .call(d3.axisLeft(this.yscale));
+
+            var aysize = this._dom.yaxis.node().getBoundingClientRect();
+
+            this._dom.yaxis
+                .attr("transform", "translate(" + (this._margin.left+aysize.width) + ",0)");
+            this._margin.left += aysize.width;
+
+            this._dom.yaxis
+                .call(d3.axisLeft(this.yscale));
+            this._dom.xaxis
+                .call(d3.axisBottom(this.xscale));
+
         }
         show(svg, dimensions){
             this._dimensions = dimensions;
