@@ -1,5 +1,7 @@
 .srweb-plot-figure{
 	cursor: crosshair;
+	font-family: Helvetica, sans-serif;
+	font-size: 14px;
 }
 .srweb-plot-figure .markers{
 	stroke-width: 1;

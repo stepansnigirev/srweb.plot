@@ -429,14 +429,52 @@ srweb.plot = new function(){
         get xscale(){
             var x = d3.scaleLinear()
                 .domain([this.xmin, this.xmax])
-                .range([0, this._dimensions[0]]);
+                .range([this._margin.left, this._dimensions[0]-this._margin.right]);
             return x;
         }
         get yscale(){
             var y = d3.scaleLinear()
                 .domain([this.ymin, this.ymax])
-                .range([0, this._dimensions[1]]);
+                .range([this._margin.top, this._dimensions[1]-this._margin.bottom]);
             return y;
+        }
+        set xlabel(label){
+            this._xlabel = label;
+        }
+        set ylabel(label){
+            this._ylabel = label;
+        }
+        _drawAxes(){
+            var width = this._dimensions[0];
+            var height = this._dimensions[1];
+            var margin = {
+                right: 10,
+                left: 10,
+                top: 10,
+                bottom: 10,
+            }
+            if(!("xlabel" in this._dom)){
+                this._dom.xlabel = this._dom.ax.append("text");
+            }
+            this._dom.xlabel.text(this._xlabel)
+                    .attr("transform",
+                        "translate(" + (width/2) + " ," + 
+                        (height-margin.bottom) + ")")
+                    .style("text-anchor", "middle");
+            var xsize = this._dom.xlabel.node().getBoundingClientRect();
+
+            if(!("ylabel" in this._dom)){
+                this._dom.ylabel = this._dom.ax.append("text");
+            }
+            this._dom.ylabel.text(this._ylabel)
+                    .attr("transform", "rotate(-90)")
+            var ysize = this._dom.ylabel.node().getBoundingClientRect();
+            this._dom.ylabel.text(this._ylabel)
+                    .attr("x", -height/2).attr("y", margin.left+ysize.width/2);
+
+            this._margin = Object.assign({}, margin);
+            this._margin.left += ysize.width;
+            this._margin.bottom += xsize.height;
         }
         show(svg, dimensions){
             this._dimensions = dimensions;
@@ -445,9 +483,11 @@ srweb.plot = new function(){
             }
             if(!("ax" in this._dom)){
                 this._dom.ax = this._dom.svg.append("g");
+                this._dom.plots = this._dom.ax.append("g");
             }
+            this._drawAxes();
             this.plots.forEach( p => {
-                p.show(this._dom.ax, this.xscale, this.yscale);
+                p.show(this._dom.plots, this.xscale, this.yscale);
             });
             return this;
         }
@@ -636,6 +676,12 @@ srweb.plot = new function(){
         }
         let fig = this.gcf();
         return fig.plot.apply(fig, arguments);
+    }
+    this.xlabel = function(label){
+        this.gca().xlabel = label;
+    }
+    this.ylabel = function(label){
+        this.gca().ylabel = label;
     }
 }
 
