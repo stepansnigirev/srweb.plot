@@ -4,5 +4,18 @@
 	font-size: 14px;
 }
 .srweb-plot-figure .markers{
+	stroke-width: 1.2;
+}
+.srweb-plot-figure .line{
+	stroke-width: 2;
+}
+.srweb-plot-figure .frame{
+	fill: none;
+	stroke: #000;
 	stroke-width: 1;
+	shape-rendering:crispEdges;
+}
+.srweb-plot-figure .title{
+	font-size: 1.2em;
+	font-weight: lighter;
 }

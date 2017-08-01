@@ -351,13 +351,13 @@ srweb.plot = new function(){
                 .enter().append("circle")
                 .attr("cx", d => {return xscale(d.x)})
                 .attr("cy", d => {return yscale(d.y)})
-                .attr("r", 3.5)
+                .attr("r", 4)
                 .attr("fill", this.mfc)
                 .attr("stroke", this.mec);
             markers
                 .attr("cx", d => {return xscale(d.x)})
                 .attr("cy", d => {return yscale(d.y)})
-                .attr("r", 3.5)
+                .attr("r", 4)
                 .attr("fill", this.mfc)
                 .attr("stroke", this.mec);
             markers
@@ -431,13 +431,13 @@ srweb.plot = new function(){
         get xscale(){
             var x = d3.scaleLinear()
                 .domain([this.xmin, this.xmax])
-                .range([this._margin.left + 7, this._dimensions[0]-this._margin.right - 7]);
+                .range([this._margin.left + 23, this._dimensions[0]-this._margin.right - 23]);
             return x;
         }
         get yscale(){
             var y = d3.scaleLinear()
                 .domain([this.ymin, this.ymax])
-                .range([this._margin.top + 7, this._dimensions[1]-this._margin.bottom - 7]);
+                .range([this._dimensions[1]-this._margin.bottom - 23, this._margin.top + 23]);
             return y;
         }
         set xlabel(label){
@@ -446,24 +446,38 @@ srweb.plot = new function(){
         set ylabel(label){
             this._ylabel = label;
         }
+        set title(title){
+            this._title = title;
+        }
         _drawAxes(){
             var width = this._dimensions[0];
             var height = this._dimensions[1];
             var margin = {
-                right: 10,
-                left: 10,
-                top: 10,
-                bottom: 10,
+                right: 80,
+                left: 50,
+                top: 40,
+                bottom: 30,
             }
+            if(!("title" in this._dom)){
+                this._dom.title = this._dom.ax.append("text").attr("class", "title");
+            }
+            this._dom.title.text(this._title)
+                    .style("text-anchor", "middle");
+            var tsize = this._dom.title.node().getBoundingClientRect();
+            this._dom.title.attr("transform",
+                        "translate(" + (width/2) + " ," + 
+                        (margin.top+tsize.height) + ")")
+
             if(!("xlabel" in this._dom)){
                 this._dom.xlabel = this._dom.ax.append("text");
             }
             this._dom.xlabel.text(this._xlabel)
-                    .attr("transform",
-                        "translate(" + (width/2) + " ," + 
-                        (height-margin.bottom) + ")")
                     .style("text-anchor", "middle");
             var xsize = this._dom.xlabel.node().getBoundingClientRect();
+            this._dom.xlabel.attr("transform",
+                        "translate(" + (width/2) + " ," + 
+                        (height-margin.bottom-xsize.height*0.5) + ")");
+
 
             if(!("ylabel" in this._dom)){
                 this._dom.ylabel = this._dom.ax.append("text");
@@ -472,17 +486,19 @@ srweb.plot = new function(){
                     .attr("transform", "rotate(-90)")
             var ysize = this._dom.ylabel.node().getBoundingClientRect();
             this._dom.ylabel.text(this._ylabel)
-                    .attr("x", -height/2).attr("y", margin.left+ysize.width/2);
+                    .attr("x", -height/2).attr("y", margin.left+ysize.width*1.5/2);
 
             this._margin = Object.assign({}, margin);
-            this._margin.left += ysize.width;
-            this._margin.bottom += xsize.height;
+            this._margin.left += ysize.width*1.5;
+            this._margin.bottom += xsize.height*1.5;
+            this._margin.top += tsize.height*1.5;
 
             if(!("xaxis" in this._dom)){
                 this._dom.xaxis = this._dom.ax.append("g");
             }
 
             this._dom.xaxis
+                .style("font-size", "1em")
                 .call(d3.axisBottom(this.xscale));
 
             var axsize = this._dom.xaxis.node().getBoundingClientRect();
@@ -496,6 +512,7 @@ srweb.plot = new function(){
             }
 
             this._dom.yaxis
+                .style("font-size", "1em")
                 .call(d3.axisLeft(this.yscale));
 
             var aysize = this._dom.yaxis.node().getBoundingClientRect();
@@ -508,6 +525,16 @@ srweb.plot = new function(){
                 .call(d3.axisLeft(this.yscale));
             this._dom.xaxis
                 .call(d3.axisBottom(this.xscale));
+
+            if(!("frame" in this._dom)){
+                this._dom.frame = this._dom.ax.append("rect")
+                                        .attr("class", "frame");
+            }
+            this._dom.frame
+                .attr("x", this._margin.left)
+                .attr("y", this._margin.top)
+                .attr("width", this._dimensions[0]-this._margin.left-this._margin.right-1)
+                .attr("height", this._dimensions[1]-this._margin.top-this._margin.bottom);
 
         }
         show(svg, dimensions){
@@ -713,9 +740,15 @@ srweb.plot = new function(){
     }
     this.xlabel = function(label){
         this.gca().xlabel = label;
+        return this.gca();
     }
     this.ylabel = function(label){
         this.gca().ylabel = label;
+        return this.gca();
+    }
+    this.title = function(title){
+        this.gca().title = title;
+        return this.gca();
     }
 }
 

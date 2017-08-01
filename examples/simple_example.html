@@ -7,7 +7,11 @@
 </head>
 <body>
 
-<div id="plot"></div>
+<div id="plot" class="image-container"></div>
+
+<div class="image-container">
+	<img src="simple_example.svg">
+</div>
 
 <script src="./files/d3.v4.min.js"></script>
 <script src="../src/plot.js"></script>
@@ -16,7 +20,7 @@
 var plt = srweb.plot;
 
 // generating some data
-var t = d3.range(0.0, 2.0, 0.01);
+var t = d3.range(0.0, 2.0, 0.03);
 var s1 = t.map( v => {
 	return 1 + Math.sin(2*Math.PI*v);
 });
@@ -28,6 +32,7 @@ plt.plot(t, s1, {"mfc": "#fff"});
 plt.plot(t, s2);
 plt.xlabel("Time, s");
 plt.ylabel("Voltage, V");
+plt.title("Simple plot")
 plt.show("#plot");
 
 </script>
