@@ -28,6 +28,7 @@ var s2 = t.map( v => {
 	return 1 - Math.sin(2*Math.PI*v);
 });
 
+// plt.figure({figsize: [300,300]});
 plt.plot(t, s1, {"mfc": "#fff"});
 plt.plot(t, s2);
 plt.xlabel("Time, s");

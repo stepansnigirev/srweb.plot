@@ -306,8 +306,6 @@ srweb.plot = new function(){
             this._dom = {};
             this._options = {};
             this.updateOptions(options);
-            this._xscale = undefined;
-            this._yscale = undefined;
         }
         updateOptions(options){
             Object.assign(this._options, options);
@@ -589,12 +587,7 @@ srweb.plot = new function(){
             this._dom = {};
             this._key = key;
             this._responsive = true;
-            this._options = {
-                figsize: undefined,
-                facecolor: undefined,
-                edgecolor: undefined,
-                frameon: true
-            };
+            this._options = {};
             this.updateOptions(options);
             this._resize = e => this.resize(e);
             window.addEventListener("resize", this._resize);
@@ -604,10 +597,7 @@ srweb.plot = new function(){
             this.getCurrentAxes = this.gca;
         }
         resize(){
-            if(
-                ("svg" in this._dom) &&
-                this.responsive
-                ){
+            if(("svg" in this._dom) && this.responsive){
                 this.show();
             }
         }

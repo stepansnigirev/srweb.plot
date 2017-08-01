@@ -18,6 +18,11 @@ body{
 	box-shadow: 1px 1px 3px rgba(0,0,0,0.1);
 	margin: 20px;
 }
+#plot{
+/*	padding: 50px;
+	box-sizing: border-box;
+*/
+}
 #plot svg{
     /*border: 1px solid #faa;*/
 }
