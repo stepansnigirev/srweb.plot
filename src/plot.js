@@ -282,6 +282,9 @@ srweb.plot = new function(){
         }
         return [x, y, options];
     }
+    function randomId(prefix="el"){
+        return Math.random().toString().replace("0.",prefix);
+    }
     var defaults = {
         colormap: [
             "#1f77b4",
@@ -338,9 +341,10 @@ srweb.plot = new function(){
         get color(){
             return this._options.color;
         }
-        draw_markers(xscale, yscale){
+        draw_markers(xscale, yscale, clipPath){
             if(!("markers" in this._dom)){
                 this._dom.markers = this._dom.ax.append("g")
+                                    .attr("clip-path", "url(#"+clipPath.attr("id")+")")
                                     .attr("class", "markers");
             }
             let markers = this._dom.markers
@@ -363,7 +367,7 @@ srweb.plot = new function(){
             markers
                 .exit().remove();
         }
-        draw_line(xscale, yscale){
+        draw_line(xscale, yscale, clipPath){
             let line = d3.line()
                 .x(function(d) { return xscale(d.x); })
                 .y(function(d) { return yscale(d.y); });
@@ -374,6 +378,7 @@ srweb.plot = new function(){
             this._dom.line
                   .datum(this._data)
                   .attr("fill", "none")
+                  .attr("clip-path", "url(#"+clipPath.attr("id")+")")
                   .attr("stroke", this.color)
                   .attr("stroke-linejoin", "round")
                   .attr("stroke-linecap", "round")
@@ -385,7 +390,7 @@ srweb.plot = new function(){
                 this.show();
             }
         }
-        show(ax, xscale, yscale){
+        show(ax, xscale, yscale, clipPath){
             if(!("ax" in this._dom)){
                 this._dom.ax = ax;
             }
@@ -400,8 +405,8 @@ srweb.plot = new function(){
                 yscale = this._yscale;
             }
 
-            this.draw_line(xscale, yscale);
-            this.draw_markers(xscale, yscale);
+            this.draw_line(xscale, yscale, clipPath);
+            this.draw_markers(xscale, yscale, clipPath);
             return this;
         }
         get xmin(){ return d3.min(this.x); }
@@ -428,16 +433,32 @@ srweb.plot = new function(){
         get ymin(){ return d3.min(this.plots.map( p => {return p.ymin})); }
         get ymax(){ return d3.max(this.plots.map( p => {return p.ymax})); }
         get yrange(){ return this.ymax-this.ymin; }
+        set_xlim(xmin, xmax){
+            // sets limits of the x axis
+            // TODO: make possible to pass
+            // [xmin, xmax] or { xmin: x1, xmax: x2 }
+            // and xmin, xmax could be functions
+            this._xmin = xmin;
+            this._xmax = xmax;
+        }
+        set_ylim(ymin, ymax){
+            this._ymin = ymin;
+            this._ymax = ymax;
+        }
         get xscale(){
-            var x = d3.scaleLinear()
-                .domain([this.xmin, this.xmax])
-                .range([this._margin.left + 23, this._dimensions[0]-this._margin.right - 23]);
+            var x = d3.scaleLinear();
+            var xmin = this._xmin || this.xmin;
+            var xmax = this._xmax || this.xmax;
+            x.domain([xmin, xmax])
+             .range([this._margin.left + 23, this._dimensions[0]-this._margin.right - 23]);
             return x;
         }
         get yscale(){
-            var y = d3.scaleLinear()
-                .domain([this.ymin, this.ymax])
-                .range([this._dimensions[1]-this._margin.bottom - 23, this._margin.top + 23]);
+            var y = d3.scaleLinear();
+            var ymin = this._ymin || this.ymin;
+            var ymax = this._ymax || this.ymax;
+            y.domain([ymin, ymax])
+             .range([this._dimensions[1]-this._margin.bottom - 23, this._margin.top + 23]);
             return y;
         }
         set xlabel(label){
@@ -527,15 +548,24 @@ srweb.plot = new function(){
                 .call(d3.axisBottom(this.xscale));
 
             if(!("frame" in this._dom)){
-                this._dom.frame = this._dom.ax.append("rect")
+                this._dom.clipPath = this._dom.ax.append("clipPath")
+                                        .attr("id", randomId());
+                this._dom.frame = this._dom.ax
+                                        .append("rect")
                                         .attr("class", "frame");
+                this._dom.clipRect = this._dom.clipPath
+                                        .append("rect");
             }
             this._dom.frame
                 .attr("x", this._margin.left)
                 .attr("y", this._margin.top)
                 .attr("width", this._dimensions[0]-this._margin.left-this._margin.right-1)
                 .attr("height", this._dimensions[1]-this._margin.top-this._margin.bottom);
-
+            this._dom.clipRect
+                .attr("x", this._margin.left)
+                .attr("y", this._margin.top)
+                .attr("width", this._dimensions[0]-this._margin.left-this._margin.right-1)
+                .attr("height", this._dimensions[1]-this._margin.top-this._margin.bottom);
         }
         show(svg, dimensions){
             this._dimensions = dimensions;
@@ -548,7 +578,8 @@ srweb.plot = new function(){
             }
             this._drawAxes();
             this.plots.forEach( p => {
-                p.show(this._dom.plots, this.xscale, this.yscale);
+                // plots holder, xscale, yscale, clipping mask
+                p.show(this._dom.plots, this.xscale, this.yscale, this._dom.clipPath);
             });
             return this;
         }
@@ -748,6 +779,14 @@ srweb.plot = new function(){
     }
     this.title = function(title){
         this.gca().title = title;
+        return this.gca();
+    }
+    this.xlim = function(xmin, xmax){
+        this.gca().set_xlim(xmin, xmax);
+        return this.gca();
+    }
+    this.ylim = function(ymin, ymax){
+        this.gca().set_ylim(ymin, ymax);
         return this.gca();
     }
 }
