@@ -11,5 +11,5 @@ plt.plot(t, s1, mfc="#ffffff", marker="o");
 plt.plot(t, s2, marker="o")
 plt.xlabel("Time, s")
 plt.ylabel("Voltage, V")
-plt.title("Simple plot")
+plt.title("Simple plot with matplotlib")
 plt.savefig("simple_example.svg")

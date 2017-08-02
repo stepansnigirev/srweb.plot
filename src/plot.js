@@ -299,12 +299,20 @@ srweb.plot = new function(){
             "#17becf",
         ],
     }
+    var props = ["c", "color", "marker", "ls", "linestyle"];
+    var aliases = {
+        "c": "color",
+        "ls": "linestyle"
+    }
     class Plot{
         constructor(options={}){
             this.x = [];
             this.y = [];
             this._dom = {};
-            this._options = {};
+            this._options = {
+                marker: "",
+                linestyle: "-"
+            };
             this.updateOptions(options);
         }
         updateOptions(options){
@@ -335,9 +343,6 @@ srweb.plot = new function(){
                 c = this._options.mec;
             }
             return c;
-        }
-        get color(){
-            return this._options.color;
         }
         draw_markers(xscale, yscale, clipPath){
             if(!("markers" in this._dom)){
@@ -376,12 +381,15 @@ srweb.plot = new function(){
             this._dom.line
                   .datum(this._data)
                   .attr("fill", "none")
-                  .attr("clip-path", "url(#"+clipPath.attr("id")+")")
                   .attr("stroke", this.color)
                   .attr("stroke-linejoin", "round")
                   .attr("stroke-linecap", "round")
                   .attr("stroke-width", 1)
                   .attr("d", line);
+            if(clipPath){
+                this._dom.line
+                  .attr("clip-path", "url(#"+clipPath.attr("id")+")");
+            }
         }
         redraw(){
             if("ax" in this._dom){
@@ -402,6 +410,11 @@ srweb.plot = new function(){
             }else{
                 yscale = this._yscale;
             }
+            if(clipPath){
+                this._dom.clipPath = clipPath;
+            }else{
+                clipPath = this._clipPath;
+            }
 
             this.draw_line(xscale, yscale, clipPath);
             this.draw_markers(xscale, yscale, clipPath);
@@ -411,7 +424,11 @@ srweb.plot = new function(){
         get xmax(){ return d3.max(this.x); }
         get ymin(){ return d3.min(this.y); }
         get ymax(){ return d3.max(this.y); }
+        test(){
+            console.log("ok");
+        }
     }
+
     class Axes{
         constructor(options={}){
             this._dom = {};
@@ -423,7 +440,7 @@ srweb.plot = new function(){
             this.plots.push(p);
             p.plot.apply(p, arguments);
             this._counter = (this._counter + 1) % defaults.colormap.length;
-            return this;
+            return p;
         }
         get xmin(){ return d3.min(this.plots.map( p => {return p.xmin})); }
         get xmax(){ return d3.max(this.plots.map( p => {return p.xmax})); }
@@ -681,11 +698,32 @@ srweb.plot = new function(){
         }
         plot(){
             let ax = this.gca();
-            ax.plot.apply(ax, arguments);
-            return this;
+            return ax.plot.apply(ax, arguments);
         }
     }
 
+    props.forEach( p => {
+        Object.defineProperty(Plot.prototype, p, {
+            get: function(){
+                if(p in aliases){
+                    p = aliases[p];
+                }
+                if(p in this._options){
+                    return this._options[p];
+                }
+                return undefined;
+            },
+            set: function(value){
+                if(p in aliases){
+                    p = aliases[p];
+                }
+                if(p in this._options){
+                    this._options[p] = value;
+                }
+                this.redraw(); // fix this with a reference to axes
+            }
+        })
+    });
     // figure management
     this.figures = {};
     this.currentFigure;
