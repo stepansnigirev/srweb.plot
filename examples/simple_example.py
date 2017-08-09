@@ -8,7 +8,7 @@ s2 = 1 - np.sin(2*np.pi*t)
 
 plt.figure(figsize=[800/97, 600/97])
 plt.plot(t, s1, mfc="#ffffff", marker="o");
-plt.plot(t, s2, marker="o")
+plt.plot(t, s2, marker="o", ls="--")
 plt.xlabel("Time, s")
 plt.ylabel("Voltage, V")
 plt.title("Simple plot with matplotlib")
