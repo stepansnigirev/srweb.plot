@@ -102,6 +102,10 @@ srweb.plot = new function(){
                                     .attr("clip-path", "url(#"+clipPath.attr("id")+")")
                                     .attr("class", "markers");
             }
+            if(this.marker == "" || this.marker == " "){
+                // this._dom.line.attr("display", "none");
+                return;
+            }
             let markers = this._dom.markers
               .selectAll("circle")
               .data(this._data);
@@ -131,6 +135,7 @@ srweb.plot = new function(){
                                     .attr("class", "line");
             }
             if(this.linestyle == "" || this.linestyle == " "){
+                // this._dom.line.attr("display", "none");
                 return;
             }
             this._dom.line
