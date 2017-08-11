@@ -193,6 +193,18 @@ srweb.plot = new function(){
         }
     }
 
+    class Scatter extends Plot{
+        constructor(options={}){
+            super(options);
+            this._options = {
+                marker: "o",
+                linestyle: ""
+            };
+            this.updateOptions(options);
+        }
+
+    }
+
     class Axes{
         constructor(options={}){
             this._dom = {};
@@ -201,6 +213,13 @@ srweb.plot = new function(){
         }
         plot(){
             let p = new Plot({color: defaults.colormap[this._counter]});
+            this.plots.push(p);
+            p.plot.apply(p, arguments);
+            this._counter = (this._counter + 1) % defaults.colormap.length;
+            return p;
+        }
+        scatter(){
+            let p = new Scatter({color: defaults.colormap[this._counter]});
             this.plots.push(p);
             p.plot.apply(p, arguments);
             this._counter = (this._counter + 1) % defaults.colormap.length;
@@ -464,6 +483,10 @@ srweb.plot = new function(){
             let ax = this.gca();
             return ax.plot.apply(ax, arguments);
         }
+        scatter(){
+            let ax = this.gca();
+            return ax.scatter.apply(ax, arguments);
+        }
     }
 
     props.forEach( p => {
@@ -560,6 +583,13 @@ srweb.plot = new function(){
         }
         let fig = this.gcf();
         return fig.plot.apply(fig, arguments);
+    }
+    this.scatter = function(){
+        if(!this.gcf()){
+            this.figure();
+        }
+        let fig = this.gcf();
+        return fig.scatter.apply(fig, arguments);
     }
     this.xlabel = function(label){
         this.gca().xlabel = label;
