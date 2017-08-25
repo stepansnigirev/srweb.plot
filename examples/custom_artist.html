@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Custom artist</title>
+	<link rel="stylesheet" type="text/css" href="../src/plot.css">
+	<link rel="stylesheet" type="text/css" href="./files/examples-style.css">
+</head>
+<body>
+
+<div id="plot" class="image-container"></div>
+
+<script src="./files/d3.v4.min.js"></script>
+<script src="../src/plot.js"></script>
+<script type="text/javascript">
+
+var plt = srweb.plot;
+
+// generating some data
+var t = d3.range(0.0, 2.0, 0.03);
+var s1 = t.map( v => {
+	return 1 + Math.sin(2*Math.PI*v);
+});
+var s2 = t.map( v => {
+	return 1 - Math.sin(2*Math.PI*v);
+});
+
+var fig = plt.figure({frameon: false});
+plt.fillBetween(t,s1,s2, {color: "rgba(100,100,100,0.1)"});
+plt.plot(t, s2, {ls: "--"});
+plt.plot(t, s1, {mfc: "#fff", marker: "o", linestyle: ""});
+// plt.xlabel("Time, s");
+// plt.ylabel("Voltage, V");
+// plt.title("Custom artist");
+plt.xlim(0.5,undefined);
+plt.show("#plot");
+
+</script>
+
+</body>
+</html>

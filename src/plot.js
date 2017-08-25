@@ -50,15 +50,10 @@ srweb.plot = new function(){
         "c": "color",
         "ls": "linestyle"
     }
-    class Plot{
+    class Artist{
         constructor(options={}){
-            this.x = [];
-            this.y = [];
             this._dom = {};
-            this._options = {
-                marker: "",
-                linestyle: "-"
-            };
+            this._options = {};
             this.updateOptions(options);
         }
         updateOptions(options){
@@ -70,6 +65,91 @@ srweb.plot = new function(){
                 }
             });
             this.redraw();
+        }
+        redraw(){
+            if("ax" in this._dom){
+                this.show();
+            }
+        }
+        show(ax, xscale, yscale, clipPath){
+            if(!("ax" in this._dom)){
+                this._dom.ax = ax;
+            }
+            if(xscale){
+                this._xscale = xscale;
+            }else{
+                xscale = this._xscale;
+            }
+            if(yscale){
+                this._yscale = yscale;
+            }else{
+                yscale = this._yscale;
+            }
+            if(clipPath){
+                this._dom.clipPath = clipPath;
+            }else{
+                clipPath = this._clipPath;
+            }
+
+            return this;
+        }
+    }
+    class FillBetween extends Artist{
+        constructor(options={}){
+            super();
+            this.x = [];
+            this.y1 = [];
+            this.y2 = [];
+            this.updateOptions(options);
+        }
+        plot(x, y1, y2, options={}){
+            this.x = x;
+            this.y1 = y1;
+            this.y2 = y2;
+            this.updateOptions(options);
+        }
+        get _data(){
+            return this.x.map( (v, i) => {
+                return {x: this.x[i], y1: this.y1[i], y2: this.y2[i] };
+            });
+        }
+        draw_area(xscale,yscale,clipPath){
+            if(!("area" in this._dom)){
+                this._dom.area = this._dom.ax.append("path")
+                                    .attr("clip-path", "url(#"+clipPath.attr("id")+")")
+                                    .attr("class", "area");
+            }
+            let area = d3.area()
+                .x(function(d) { return xscale(d.x); })
+                .y0(function(d) { return yscale(d.y1); })
+                .y1(function(d) { return yscale(d.y2); });
+            this._dom.area
+                .attr("fill", this.color)
+                .datum(this._data)
+                .attr("d", area)
+                .attr("stroke", "none");
+        }
+        show(ax, xscale, yscale, clipPath){
+            super.show(ax, xscale, yscale, clipPath);
+            this.draw_area(xscale, yscale, clipPath);
+            return this;
+        }
+        get xmin(){ return d3.min(this.x); }
+        get xmax(){ return d3.max(this.x); }
+        get ymin(){ return d3.min([].concat(this.y1, this.y2)); }
+        get ymax(){ return d3.max([].concat(this.y1, this.y2)); }
+    }
+
+    class Plot extends Artist{
+        constructor(options={}){
+            super();
+            this.x = [];
+            this.y = [];
+            this._options = {
+                marker: "",
+                linestyle: "-"
+            };
+            this.updateOptions(options);
         }
         plot(){
             let options = {};
@@ -155,31 +235,8 @@ srweb.plot = new function(){
                   .attr("clip-path", "url(#"+clipPath.attr("id")+")");
             }
         }
-        redraw(){
-            if("ax" in this._dom){
-                this.show();
-            }
-        }
         show(ax, xscale, yscale, clipPath){
-            if(!("ax" in this._dom)){
-                this._dom.ax = ax;
-            }
-            if(xscale){
-                this._xscale = xscale;
-            }else{
-                xscale = this._xscale;
-            }
-            if(yscale){
-                this._yscale = yscale;
-            }else{
-                yscale = this._yscale;
-            }
-            if(clipPath){
-                this._dom.clipPath = clipPath;
-            }else{
-                clipPath = this._clipPath;
-            }
-
+            super.show(ax, xscale, yscale, clipPath);
             this.draw_line(xscale, yscale, clipPath);
             this.draw_markers(xscale, yscale, clipPath);
             return this;
@@ -188,9 +245,6 @@ srweb.plot = new function(){
         get xmax(){ return d3.max(this.x); }
         get ymin(){ return d3.min(this.y); }
         get ymax(){ return d3.max(this.y); }
-        test(){
-            console.log("ok");
-        }
     }
 
     class Scatter extends Plot{
@@ -206,10 +260,18 @@ srweb.plot = new function(){
     }
 
     class Axes{
-        constructor(options={}){
+        constructor(figure, options={}){
+            this._figure = figure;
             this._dom = {};
             this.plots = [];
             this._counter = 0;
+            this._options = {};
+            this.updateOptions(options);
+        }
+        updateOptions(options={}){
+            Object.assign(this._options, options);
+            this.redraw();
+            return this;
         }
         plot(){
             let p = new Plot({color: defaults.colormap[this._counter]});
@@ -220,6 +282,20 @@ srweb.plot = new function(){
         }
         scatter(){
             let p = new Scatter({color: defaults.colormap[this._counter]});
+            this.plots.push(p);
+            p.plot.apply(p, arguments);
+            this._counter = (this._counter + 1) % defaults.colormap.length;
+            return p;
+        }
+        fillBetween(){
+            let p = new FillBetween({color: defaults.colormap[this._counter]});
+            this.plots.push(p);
+            p.plot.apply(p, arguments);
+            this._counter = (this._counter + 1) % defaults.colormap.length;
+            return p;
+        }
+        addArtist(ArtistClass){
+            let p = new ArtistClass({color: defaults.colormap[this._counter]});
             this.plots.push(p);
             p.plot.apply(p, arguments);
             this._counter = (this._counter + 1) % defaults.colormap.length;
@@ -272,10 +348,18 @@ srweb.plot = new function(){
             var width = this._dimensions[0];
             var height = this._dimensions[1];
             var margin = {
-                right: 80,
-                left: 50,
-                top: 40,
-                bottom: 30,
+                    right: 0,
+                    left: 0,
+                    top: 0,
+                    bottom: 0,                
+            }
+            if(!("frameon" in this._options && !this._options.frameon)){
+                margin = {
+                    right: 80,
+                    left: 50,
+                    top: 40,
+                    bottom: 30,
+                }
             }
             if(!("title" in this._dom)){
                 this._dom.title = this._dom.ax.append("text").attr("class", "title");
@@ -315,35 +399,37 @@ srweb.plot = new function(){
             if(!("xaxis" in this._dom)){
                 this._dom.xaxis = this._dom.ax.append("g");
             }
-
-            this._dom.xaxis
-                .style("font-size", "1em")
-                .call(d3.axisBottom(this.xscale));
-
-            var axsize = this._dom.xaxis.node().getBoundingClientRect();
-
-            this._dom.xaxis
-                .attr("transform", "translate(0," + (height-this._margin.bottom-axsize.height) + ")")
-            this._margin.bottom += axsize.height;
-
             if(!("yaxis" in this._dom)){
                 this._dom.yaxis = this._dom.ax.append("g");
             }
 
-            this._dom.yaxis
-                .style("font-size", "1em")
-                .call(d3.axisLeft(this.yscale));
+            if(!("frameon" in this._options && !this._options.frameon)){
+                this._dom.xaxis
+                    .style("font-size", "1em")
+                    .call(d3.axisBottom(this.xscale));
 
-            var aysize = this._dom.yaxis.node().getBoundingClientRect();
+                var axsize = this._dom.xaxis.node().getBoundingClientRect();
 
-            this._dom.yaxis
-                .attr("transform", "translate(" + (this._margin.left+aysize.width) + ",0)");
-            this._margin.left += aysize.width;
+                this._dom.xaxis
+                    .attr("transform", "translate(0," + (height-this._margin.bottom-axsize.height) + ")")
+                this._margin.bottom += axsize.height;
 
-            this._dom.yaxis
-                .call(d3.axisLeft(this.yscale));
-            this._dom.xaxis
-                .call(d3.axisBottom(this.xscale));
+
+                this._dom.yaxis
+                    .style("font-size", "1em")
+                    .call(d3.axisLeft(this.yscale));
+
+                var aysize = this._dom.yaxis.node().getBoundingClientRect();
+
+                this._dom.yaxis
+                    .attr("transform", "translate(" + (this._margin.left+aysize.width) + ",0)");
+                this._margin.left += aysize.width;
+
+                this._dom.yaxis
+                    .call(d3.axisLeft(this.yscale));
+                this._dom.xaxis
+                    .call(d3.axisBottom(this.xscale));
+            }
 
             if(!("frame" in this._dom)){
                 this._dom.clipPath = this._dom.ax.append("clipPath")
@@ -354,16 +440,25 @@ srweb.plot = new function(){
                 this._dom.clipRect = this._dom.clipPath
                                         .append("rect");
             }
-            this._dom.frame
-                .attr("x", this._margin.left)
-                .attr("y", this._margin.top)
-                .attr("width", this._dimensions[0]-this._margin.left-this._margin.right-1)
-                .attr("height", this._dimensions[1]-this._margin.top-this._margin.bottom);
+
+            if(!("frameon" in this._options && !this._options.frameon)){
+                this._dom.frame
+                    .attr("x", this._margin.left)
+                    .attr("y", this._margin.top)
+                    .attr("width", this._dimensions[0]-this._margin.left-this._margin.right-1)
+                    .attr("height", this._dimensions[1]-this._margin.top-this._margin.bottom);
+            }
             this._dom.clipRect
                 .attr("x", this._margin.left)
                 .attr("y", this._margin.top)
                 .attr("width", this._dimensions[0]-this._margin.left-this._margin.right-1)
                 .attr("height", this._dimensions[1]-this._margin.top-this._margin.bottom);
+        }
+        redraw(){
+            if("ax" in this._dom){
+                this.show();
+            }
+            return this;
         }
         show(svg, dimensions){
             this._dimensions = dimensions;
@@ -392,23 +487,26 @@ srweb.plot = new function(){
             this._resize = e => this.resize(e);
             window.addEventListener("resize", this._resize);
 
-            this.axes = [new Axes()];
+            this.axes = [new Axes(this, options)];
             this.currentAxes = this.axes[0];
-            this.getCurrentAxes = this.gca;
+            this.getCurrentAxes = this.gca; // function alias
         }
         resize(){
             if(("svg" in this._dom) && this.responsive){
                 this.show();
             }
+            return this;
         }
         updateOptions(options={}){
             Object.assign(this._options, options);
             this.redraw();
+            return this;
         }
         redraw(){
             if("svg" in this._dom){
                 this.show();
             }
+            return this;
         }
         get responsive(){
             if(this.figsize === undefined){
@@ -487,10 +585,15 @@ srweb.plot = new function(){
             let ax = this.gca();
             return ax.scatter.apply(ax, arguments);
         }
+        fillBetween(){
+            let ax = this.gca();
+            return ax.fillBetween.apply(ax, arguments);
+        }
     }
 
+    // defining setters and getters for Plot like p.color, p.c, p.mfc etc
     props.forEach( p => {
-        Object.defineProperty(Plot.prototype, p, {
+        Object.defineProperty(Artist.prototype, p, {
             get: function(){
                 if(p in aliases){
                     p = aliases[p];
@@ -591,6 +694,13 @@ srweb.plot = new function(){
         let fig = this.gcf();
         return fig.scatter.apply(fig, arguments);
     }
+    this.fillBetween = function(){
+        if(!this.gcf()){
+            this.figure();
+        }
+        let fig = this.gcf();
+        return fig.fillBetween.apply(fig, arguments);
+    }
     this.xlabel = function(label){
         this.gca().xlabel = label;
         return this.gca();
@@ -611,6 +721,14 @@ srweb.plot = new function(){
         this.gca().set_ylim(ymin, ymax);
         return this.gca();
     }
+
+    this.Figure = Figure;
+    this.Axes = Axes;
+    this.Plot = Plot;
+    this.Scatter = Scatter;
+    this.FillBetween = FillBetween;
+
+    this.Artist = Artist;
 }
 
 
